@@ -108,6 +108,7 @@ http://localhost:8000/comments/1
 
 POST:
 http://localhost:8000/comments/ 
+
 http://localhost:8000/comments/1
 {
   "user": 1,
@@ -128,7 +129,11 @@ sudo systemctl stop redis
 Most errors can be solved with a command:
 docker-compose down this will delete the data from the database (Caution)
 
+Celery:
+Celery is used for asynchronous processing of tasks, such as sending emails when comments are created or replied to. It allows you to perform tasks outside the main application thread, which provides fast responsiveness and distributed processing.
 
+Signals:
+Signals are used to automatically delete the cache after saving or deleting comments. This maintains data consistency and ensures that the list of comments in the cache is updated after every change in the database.
 
 
 
