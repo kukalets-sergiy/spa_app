@@ -2,6 +2,8 @@
 
 This project implements a comment system with the ability to add files and images, as well as CAPTCHA support
 
+"""The project was developed for the backend, but for better understanding and ease of testing, templates were added to display registration forms, autothentication, and adding comments (captcha display)."""
+
 ## Requirements.
 
 - Python 3.8+
@@ -73,7 +75,7 @@ docker-compose exec web python manage.py makemigrations
 docker-compose exec web python manage.py migrate
 docker-compose exec web python manage.py createsuperuser
 
-Checking via Postman (manually)
+Start checking example via Postman (manually) 
 
 Register a new user:
 http://localhost:8000/register/
@@ -98,7 +100,7 @@ http://localhost:8000/token/
 }
 
 go to the endpoint 
-Authorization  Token  ввести: Bearer 'received token'   click Send
+Authorization  Token  enter: Bearer 'received token'   click Send
 
 
 endpoints:
@@ -119,8 +121,26 @@ http://localhost:8000/comments/1
   "parent": 1
 }
 
+http://localhost:8000/comments/1/
+PUT:
+{
+    "id": 1,
+    "username": "user",
+    "email": "user@example.com",    
+    "text": "This is a comment has updated",
+    "date": "2024-06-30T21:04:42.565772Z",
+    "user": 1,
+    "parent": null
+}
+
+http://localhost:8000/comments/1/
+DELETE:
+
+
+Для перевірки додавання повідомлення і перевірки каптчі, перейдіть до http://localhost:8000/comments/ в вашому браузері.
 
 Possible errors:
+
 If you encounter the following error while using Redis:
 ERROR: for redis  Cannot start service redis: driver failed programming external connectivity on endpoint spa_app_redis_1 (********efc6a28e18427a04bbff47003725e9740119fe8e0322bee327f256be): Error starting userland proxy: listen tcp4 0.0.0.0:6379: bind: address already in use
 Solution:

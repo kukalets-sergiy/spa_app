@@ -50,7 +50,8 @@ class CommentSerializer(serializers.ModelSerializer):
                     image.thumbnail(output_size)
                     buffer = BytesIO()
                     image.save(buffer, format=image.format)
-                    value = InMemoryUploadedFile(buffer, None, value.name, value.content_type, buffer.tell(), None)
+                    value = InMemoryUploadedFile(buffer, None, value.name, value.content_type,
+                                                 buffer.tell(), None)
 
             elif file_extension in allowed_text_formats:
                 if file_size > max_file_size:
@@ -71,27 +72,28 @@ class CommentSerializer(serializers.ModelSerializer):
 
     def get_replies(self, obj):
         request = self.context.get('request', None)
+        page_size = 25
+        page_number = 1
+
         if request is not None:
-            page_size = 25
-            paginator = Paginator(obj.replies.all(), page_size)
+            page_size = int(request.query_params.get('reply_page_size', 25))
             page_number = request.query_params.get('reply_page', 1)
-            page_obj = paginator.get_page(page_number)
-            serializer = CommentSerializer(page_obj, many=True, context={'request': request})
-            return {
-                'replies': serializer.data,
-                'page': page_obj.number,
-                'num_pages': paginator.num_pages,
-                'total_replies': paginator.count,
-            }
-        else:
-            replies = obj.replies.all()[:25]
-            serializer = CommentSerializer(replies, many=True)
-            return {
-                'replies': serializer.data,
-                'page': 1,
-                'num_pages': 1,
-                'total_replies': len(replies),
-            }
+
+        replies = obj.replies.all().order_by('-date')
+        paginator = Paginator(replies, page_size)
+        page_obj = paginator.get_page(page_number)
+        serializer = CommentSerializer(page_obj, many=True, context={'request': request})
+
+        total_replies = paginator.count
+        total_comments_and_replies = obj.replies.count() + 1
+
+        return {
+            'replies': serializer.data,
+            'page': page_obj.number,
+            'num_pages': paginator.num_pages,
+            'total_replies': total_replies,
+            'total_comments_and_replies': total_comments_and_replies,
+        }
 
     def validate(self, data):
         request = self.context.get('request')
