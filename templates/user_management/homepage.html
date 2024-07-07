@@ -5,4 +5,20 @@
 {% block content %}
     <h1>Welcome to the Comment App</h1>
     <p>Here you can add and view comments.</p>
+
+    <form method="post" enctype="multipart/form-data" action="{% url 'spa_comments_app:comment-list-create' %}" id="comment-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Click to add a comment</button>
+    </form>
+
+    <div id="comments">
+        {% for comment in comments %}
+            <div>
+                <h3>{{ comment.username }}</h3>
+                <p>{{ comment.text }}</p>
+                <p>{{ comment.date }}</p>
+            </div>
+        {% endfor %}
+    </div>
 {% endblock %}

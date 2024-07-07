@@ -1,12 +1,11 @@
-from django.http import HttpResponseRedirect
-from django.shortcuts import redirect
-from django.views import generic
-from django.views.generic import TemplateView
+from django.shortcuts import redirect, render
+from django.views import generic, View
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserDataSerializer
 from rest_framework_jwt.settings import api_settings
-from rest_framework import generics, permissions, status
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import login, logout
@@ -35,43 +34,46 @@ class UserDetailView(generics.RetrieveAPIView):
 
 
 class UserRegisterView(generics.CreateAPIView):
+    template_name = "auth/register.html"
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
-    def perform_create(self, serializer):
-        user = serializer.save()
-        token, created = Token.objects.get_or_create(user=user)  # Create or get existing token
-        return Response({
-            "token": token.key,
-            "redirect_url": redirect(reverse('user_management_app:homepage'))  # Replace 'homepage' with your actual homepage URL name
-        }, status=status.HTTP_201_CREATED)
-
-
-class UserLoginView(TemplateView):
-    template_name = "login/login.html"
-
-
-class UserLogin(APIView):
-    permission_classes = [permissions.AllowAny]
+    def get(self, request, *args, **kwargs):
+        form = self.serializer_class()
+        return render(request, self.template_name, {'form': form})
 
     def post(self, request, *args, **kwargs):
-        serializer = UserLoginSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        token, created = Token.objects.get_or_create(user=user)
+        headers = self.get_success_headers(serializer.data)
+        return Response({
+            "token": token.key,
+            "redirect_url": reverse('user_management_app:homepage')
+        }, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class UserLoginView(View):
+    permission_classes = [AllowAny]
+    template_name = "auth/login.html"
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name)
+
+    def post(self, request, *args, **kwargs):
+        serializer = UserLoginSerializer(data=request.POST)
         if serializer.is_valid():
             user = serializer.validated_data['user']
             login(request, user)
-            payload = jwt_payload_handler(user)
-            token = jwt_encode_handler(payload)
-            return Response({
-                'token': token,
-                'redirect_url': reverse('user_management_app:homepage')
-            }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return redirect('user_management_app:homepage')
+        return render(request, self.template_name, {'errors': serializer.errors})
 
 
 class UserLogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         logout(request)
-        return Response({'redirect_url': reverse('user_management_app:login')}, status=status.HTTP_200_OK)
+        return Response({'redirect_url': reverse('user_management_app:auth')}, status=status.HTTP_200_OK)

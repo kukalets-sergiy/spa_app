@@ -1,6 +1,7 @@
 import requests
 from django.core.cache import cache
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,17 +9,18 @@ from django.shortcuts import get_object_or_404
 from .forms import CommentForm
 from .models import Comment
 from .serializers import CommentSerializer
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .tasks import send_notification_email
 from django.shortcuts import render
 
 
 class CommentListCreateAPIView(APIView):
     form_class = CommentForm
-    template_name = 'comments/comment_form.html'
+    template_name = 'user_management/homepage.html'
     queryset = Comment.objects.filter(parent__isnull=True)
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     ordering_fields = {
         'username': 'user__username',
         'email': 'user__email',
@@ -31,11 +33,10 @@ class CommentListCreateAPIView(APIView):
             return self.queryset.order_by(self.ordering_fields[order_by])
         elif order_by.startswith('-') and order_by[1:] in self.ordering_fields:
             return self.queryset.order_by('-' + self.ordering_fields[order_by[1:]])
-        return self.queryset.order_by('-date')  # Default ordering by date desc
-
+        return self.queryset.order_by('-date')
 
     def get(self, request, *args, **kwargs):
-        comments = self.get_queryset()
+        comments = Comment.objects.all()
         paginator = Paginator(comments, 25)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
@@ -55,22 +56,17 @@ class CommentListCreateAPIView(APIView):
     def post(self, request, *args, **kwargs):
         form = self.form_class(request.POST, request.FILES, request=request)
         if form.is_valid():
-            serializer_context = {'request': request}
-            serializer = CommentSerializer(data=form.cleaned_data, context=serializer_context)
-            if serializer.is_valid():
-                comment = serializer.save()
-                send_notification_email.delay(comment.id)
-                comments = self.get_queryset()
-                paginator = Paginator(comments, 25)
-                page_number = request.GET.get('page', 1)
-                page_obj = paginator.get_page(page_number)
-                serializer = CommentSerializer(page_obj, many=True)
-                return render(request, self.template_name,
-                              {'form': self.form_class(request=request), 'comments': serializer.data})
-            else:
-                return render(request, self.template_name, {'form': form, 'comments': serializer.errors})
+            comment = form.save()
+            send_notification_email.delay(comment.id)
+            comments = Comment.objects.all()
+            paginator = Paginator(comments, 25)
+            page_number = request.GET.get('page', 1)
+            page_obj = paginator.get_page(page_number)
+            serializer = CommentSerializer(page_obj, many=True)
+            return render(request, self.template_name,
+                          {'form': self.form_class(request=request), 'comments': serializer.data})
         else:
-            comments = self.get_queryset()
+            comments = Comment.objects.all()
             paginator = Paginator(comments, 25)
             page_number = request.GET.get('page', 1)
             page_obj = paginator.get_page(page_number)
@@ -79,7 +75,7 @@ class CommentListCreateAPIView(APIView):
 
 
 class CommentDetailAPIView(APIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         cache_key = f'comment_detail_{pk}'
