@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>{% block title %}My Comment App{% endblock %}</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     {% block extra_head %}{% endblock %}
 </head>
@@ -19,15 +18,17 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'user_management_app:homepage' %}">Home</a>
                 </li>
-                {#<li class="nav-item">#}
-                  {#  <a class="nav-link" href="{% url 'spa_comments_app:comment-list' %}">Comments</a>#}
-                {#</li>#}
-                {#<li class="nav-item">#}
-                    {#<a class="nav-link" href="{% url 'spa_comments_app:comment-add' %}">Add Comment</a>#}
-                {#</li>#}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'spa_comments_app:comment-list-create' %}">Comments</a>
+                </li>
             </ul>
         </div>
     </nav>
+<form id="commentForm" method="post" action="{% url 'spa_comments_app:comment-list-create' %}" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="username" value="example_user">
+    <input type="hidden" name="text" value="example_comment">
+</form>
 
     <div class="container mt-4">
         {% if messages %}
@@ -44,6 +45,8 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

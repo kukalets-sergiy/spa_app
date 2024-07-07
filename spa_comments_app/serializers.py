@@ -72,7 +72,7 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_replies(self, obj):
         request = self.context.get('request', None)
         if request is not None:
-            page_size = 25  # Set the page size for replies
+            page_size = 25
             paginator = Paginator(obj.replies.all(), page_size)
             page_number = request.query_params.get('reply_page', 1)
             page_obj = paginator.get_page(page_number)
@@ -84,7 +84,7 @@ class CommentSerializer(serializers.ModelSerializer):
                 'total_replies': paginator.count,
             }
         else:
-            replies = obj.replies.all()[:25]  # Default to first 25 replies if no request context
+            replies = obj.replies.all()[:25]
             serializer = CommentSerializer(replies, many=True)
             return {
                 'replies': serializer.data,

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Registration{% endblock %}
+
+{% block content %}
+    <h1>Registration</h1>
+
+<form id="registerForm" action="{% url 'user_management_app:register' %}" method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+    </div>
+
+    <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+
+    <div class="form-group">
+        <label for="password_confirmation">Password confirmation:</label>
+        <input type="password" class="form-control" id="password_confirmation" name="password_confirmation" required>
+    </div>
+
+    <div class="form-group">
+        <label for="first_name">First name:</label>
+        <input type="text" class="form-control" id="first_name" name="first_name" required>
+    </div>
+
+    <div class="form-group">
+        <label for="last_name">Last name:</label>
+        <input type="text" class="form-control" id="last_name" name="last_name" required>
+    </div>
+
+    <div class="form-group">
+        <label for="phone_number">Phone number:</label>
+        <input type="text" class="form-control" id="phone_number" name="phone_number" required>
+    </div>
+
+    <div class="form-group">
+        <label for="city">City:</label>
+        <input type="text" class="form-control" id="city" name="city" required>
+    </div>
+
+    <div class="form-group">
+        <label for="country">Country:</label>
+        <input type="text" class="form-control" id="country" name="country" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Register</button>
+</form>
+
+
+    <script>
+        document.getElementById("registerForm").onsubmit = async function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                window.location.href = data.redirect_url;
+            } else {
+                console.error('Registration failed');
+            }
+        };
+    </script>
+{% endblock %}
