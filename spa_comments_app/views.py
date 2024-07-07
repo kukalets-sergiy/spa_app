@@ -1,7 +1,5 @@
-import requests
 from django.core.cache import cache
 from django.core.paginator import Paginator
-from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,8 +34,9 @@ class CommentListCreateAPIView(APIView):
         return self.queryset.order_by('-date')
 
     def get(self, request, *args, **kwargs):
-        comments = Comment.objects.all()
-        paginator = Paginator(comments, 25)
+        comments = self.get_queryset()
+        page_size = int(request.GET.get('page_size', 25))
+        paginator = Paginator(comments, page_size)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
@@ -59,7 +58,8 @@ class CommentListCreateAPIView(APIView):
             comment = form.save()
             send_notification_email.delay(comment.id)
             comments = Comment.objects.all()
-            paginator = Paginator(comments, 25)
+            page_size = int(request.GET.get('page_size', 25))
+            paginator = Paginator(comments, page_size)
             page_number = request.GET.get('page', 1)
             page_obj = paginator.get_page(page_number)
             serializer = CommentSerializer(page_obj, many=True)
@@ -102,6 +102,7 @@ class CommentDetailAPIView(APIView):
         if comment.user != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
         comment.delete()
+        cache.delete(f'comment_detail_{pk}')
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
