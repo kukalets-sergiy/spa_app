@@ -36,7 +36,7 @@ class CommentListCreateAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
         comments = self.get_queryset()
-        page_size = int(request.GET.get('page_size', 14))
+        page_size = int(request.GET.get('page_size', 25))
         paginator = Paginator(comments, page_size)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
