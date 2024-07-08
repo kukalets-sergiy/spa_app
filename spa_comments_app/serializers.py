@@ -6,6 +6,7 @@ from rest_framework import serializers
 from PIL import Image
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from spa_app_core.utils import count_total_comments_and_replies
 
 
 def validate_tags(value):
@@ -21,10 +22,12 @@ def validate_tags(value):
 class CommentSerializer(serializers.ModelSerializer):
     replies = serializers.SerializerMethodField()
     file = serializers.FileField(required=False)
+    total_comments_and_replies = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'username', 'email', 'home_page', 'text', 'date', 'parent', 'replies', 'file']
+        fields = ['id', 'username', 'email', 'home_page', 'text', 'date', 'parent', 'replies', 'file',
+                  'total_comments_and_replies']
 
     def validate_text(self, value):
         validate_tags(value)
@@ -77,23 +80,23 @@ class CommentSerializer(serializers.ModelSerializer):
 
         if request is not None:
             page_size = int(request.query_params.get('reply_page_size', 25))
-            page_number = request.query_params.get('reply_page', 1)
+            page_number = int(request.query_params.get('reply_page', 1))
 
         replies = obj.replies.all().order_by('-date')
         paginator = Paginator(replies, page_size)
         page_obj = paginator.get_page(page_number)
         serializer = CommentSerializer(page_obj, many=True, context={'request': request})
 
-        total_replies = paginator.count
-        total_comments_and_replies = obj.replies.count() + 1
-
         return {
             'replies': serializer.data,
             'page': page_obj.number,
             'num_pages': paginator.num_pages,
-            'total_replies': total_replies,
-            'total_comments_and_replies': total_comments_and_replies,
+            'total_replies': paginator.count,
         }
+
+    def get_total_comments_and_replies(self, obj):
+        total_replies = obj.replies.count()
+        return total_replies + 1
 
     def validate(self, data):
         request = self.context.get('request')

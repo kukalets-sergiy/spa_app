@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from spa_app_core.utils import count_all_comments_and_replies
 from .forms import CommentForm
 from .models import Comment
 from .serializers import CommentSerializer
@@ -35,20 +36,30 @@ class CommentListCreateAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
         comments = self.get_queryset()
-        page_size = int(request.GET.get('page_size', 25))
+        page_size = int(request.GET.get('page_size', 14))
         paginator = Paginator(comments, page_size)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
-        serializer = self.serializer_class(page_obj, many=True)
+        serialized_comments = []
+        total_comments_and_replies = 0
+
+        for comment in page_obj:
+            serialized_comment = CommentSerializer(comment, context={'request': request}).data
+            total_comments_and_replies += comment.replies.count() + 1
+            if total_comments_and_replies <= 25:
+                serialized_comments.append(serialized_comment)
+            else:
+                break
+
         form = self.form_class()
         form_html = render(request, self.template_name, {'form': form}).content.decode('utf-8')
         response_data = {
             'comment_form_html': form_html,
-            'comments': serializer.data,
+            'comments': serialized_comments,
             'page': page_obj.number,
             'num_pages': paginator.num_pages,
-            'total_comments': paginator.count,
+            'total_comments_and_replies': total_comments_and_replies,
         }
         return Response(response_data)
 
@@ -57,20 +68,31 @@ class CommentListCreateAPIView(APIView):
         if form.is_valid():
             comment = form.save()
             send_notification_email.delay(comment.id)
-            comments = Comment.objects.all()
+            comments = self.get_queryset()
             page_size = int(request.GET.get('page_size', 25))
             paginator = Paginator(comments, page_size)
             page_number = request.GET.get('page', 1)
             page_obj = paginator.get_page(page_number)
-            serializer = CommentSerializer(page_obj, many=True)
+
+            serialized_comments = []
+            total_comments_and_replies = 0
+
+            for comment in page_obj:
+                serialized_comment = CommentSerializer(comment, context={'request': request}).data
+                total_comments_and_replies += comment.replies.count() + 1
+                if total_comments_and_replies <= 25:
+                    serialized_comments.append(serialized_comment)
+                else:
+                    break
+
             return render(request, self.template_name,
-                          {'form': self.form_class(request=request), 'comments': serializer.data})
+                          {'form': self.form_class(request=request), 'comments': serialized_comments})
         else:
-            comments = Comment.objects.all()
+            comments = self.get_queryset()
             paginator = Paginator(comments, 25)
             page_number = request.GET.get('page', 1)
             page_obj = paginator.get_page(page_number)
-            serializer = CommentSerializer(page_obj, many=True)
+            serializer = CommentSerializer(page_obj, many=True, context={'request': request})
             return render(request, self.template_name, {'form': form, 'comments': serializer.data})
 
 
