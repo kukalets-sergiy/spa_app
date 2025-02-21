@@ -27,11 +27,11 @@ class CommentListCreateAPIView(APIView):
     }
 
     def get_queryset(self):
-        order_by = self.request.query_params.get('order_by', '-date')
-        if order_by in self.ordering_fields:
-            return self.queryset.order_by(self.ordering_fields[order_by])
-        elif order_by.startswith('-') and order_by[1:] in self.ordering_fields:
-            return self.queryset.order_by('-' + self.ordering_fields[order_by[1:]])
+        order = self.request.query_params.get('order_by', '-date')
+        if order in self.ordering_fields:
+            return self.queryset.order_by(self.ordering_fields[order])
+        elif order.startswith('-') and order[1:] in self.ordering_fields:
+            return self.queryset.order_by('-' + self.ordering_fields[order[1:]])
         return self.queryset.order_by('-date')
 
     def get(self, request, *args, **kwargs):
